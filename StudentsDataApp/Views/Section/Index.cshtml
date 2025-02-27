@@ -1,0 +1,77 @@
+﻿@{
+    ViewData["Title"] = "Sections";
+}
+
+<h2>Sections</h2>
+
+ <button  class="btn btn-primary mb-3" id="addSectionBtn">Add Section</button>
+
+<div class="container">
+ <div id="sectionFormContainer" class="card  p-4 mb-4" style="display: none;">
+        <h4 class="mb-3">Add New Section</h4>
+        <form id="sectionForm">
+            <div class="mb-3">
+                <label for="sectionName" class="form-label">Section Name</label>
+                <input type="text" class="form-control" id="sectionName" name="sectionName">
+            </div>
+            <div class="mb-3">
+                <label for="classId" class="form-label">Class</label>
+                <select class="form-control" id="classId" name="classId">
+                    <option value="">Select Class</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Section</button>
+        </form>
+    </div>
+
+  
+    <div class="container">
+        <h4 class="mb-3">Sections List</h4>
+        <table class="table table-bordered">
+            <thead class="table">
+                <tr>
+                    <th>Section ID</th>
+                    <th>Section Name</th>
+                    <th>Class Name</th>
+                </tr>
+            </thead>
+            <tbody id="sectionTableBody">
+                
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+                $("#addSectionBtn").click(function () {
+                window.location.href = "/Section/Create";
+            });
+            loadSections();
+
+          
+            function loadSections() {
+                $.ajax({
+                    url:"Section/GetAllSections",
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        $("#sectionTableBody").empty();
+                        $.each(data, function (index, section) {
+                            $("#sectionTableBody").append(
+                                `<tr>
+                                    <td>${section.section_Id}</td>
+                                    <td>${section.section_Name}</td>
+                                    <td>${section.class ? section.class.class_Name : 'N/A'}</td>
+
+                                </tr>`
+                            );
+                        });
+                    },
+                });
+            }
+        });
+    </script>
+}

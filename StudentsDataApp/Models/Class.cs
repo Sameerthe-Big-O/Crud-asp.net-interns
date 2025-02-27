@@ -4,6 +4,6 @@
     {
         public int Class_ID { get; set; }
 
-        public string Class_Name { get; set; }
+        public string? Class_Name { get; set; }
     }
 }

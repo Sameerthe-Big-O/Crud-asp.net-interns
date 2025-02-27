@@ -1,0 +1,86 @@
+﻿@{
+    ViewData["Title"] = "Create Section";
+}
+
+<h2>Create New Section</h2>
+
+<div class="container">
+    <form id="addSectionForm">
+        <div class="mb-3">
+            <label for="classDropdown" class="form-label">Select Class</label>
+            <select id="classDropdown" class="form-control">
+                <option value="">-- Select Class --</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="sectionName" class="form-label">Section Name</label>
+            <input type="text" id="sectionName" class="form-control" placeholder="Enter Section Name">
+        </div>
+
+        <button type="submit" class="btn btn-success">Save Section</button>
+    </form>
+</div>
+
+<div id="successModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Success</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Section added successfully!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="redirectButton">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+
+        $.ajax({
+            url: '/Section/GetAllClasses',
+            type: 'GET',
+            success: function (data) {
+                $.each(data, function (index, item) {
+                    $('#classDropdown').append($('<option>', {
+                        value: item.class_Id,
+                        text: item.class_Name
+                    }));
+                });
+            }
+        });
+
+        $('#addSectionForm').submit(function (e) {
+            e.preventDefault();
+            var classId = $('#classDropdown').val();
+            var sectionName = $('#sectionName').val();
+
+            if (!classId || !sectionName) {
+                alert("Please fill in all fields.");
+                return;
+            }
+
+            $.ajax({
+                url: '/Section/Create',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ section_name: sectionName, class_id: classId  }),
+                success: function (response) {
+                    if (response.success) {
+                        $('#successModal').modal('show');
+                    } else {
+                        alert("Error: " + response.message);
+                    }
+                }
+            });
+        });
+        $('#redirectButton').click(function () {
+            window.location.href = '/Section/Index';
+        });
+    });
+</script>

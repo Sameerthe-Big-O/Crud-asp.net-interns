@@ -12,7 +12,7 @@ namespace StudentsDataApp.DAL
         [Obsolete]
         public List<Class> GetAllClasses()
         {
-            List<Class> classlist = new List<Class>();
+            List<Class> classList = new List<Class>();
 
             using (SqlConnection con = new SqlConnection(cs))
             {
@@ -28,12 +28,12 @@ namespace StudentsDataApp.DAL
                         Class_ID = Convert.ToInt32(reader["class_id"]),
                         Class_Name = reader["class_name"].ToString()
                     };
-                    classlist.Add(cls);
+                    classList.Add(cls);
                 }
-
             }
-            return classlist;
+            return classList;
         }
+
 
         [Obsolete]
         public Class GetClassById(int id)
@@ -60,16 +60,38 @@ namespace StudentsDataApp.DAL
         }
 
         [Obsolete]
-        public void AddClass(Class cls)
+        public bool ClassExists(Class cls)
+        {
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                SqlCommand cmd = new SqlCommand("SELECT COUNT(*) FROM Class WHERE Class_Name = @class_name", con);
+                cmd.Parameters.AddWithValue("@class_name", cls.Class_Name);
+
+                con.Open();
+                int count = (int)cmd.ExecuteScalar();
+
+                return count > 0;
+            }
+        }
+
+
+        [Obsolete]
+        public bool AddClass(Class cls)
         {
             using(SqlConnection con = new SqlConnection(cs))
             {
+                if (ClassExists(cls))
+                {
+                    return false; 
+                }
                 SqlCommand cmd = new SqlCommand("spAddClass", con);
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@class_name" , cls.Class_Name);
+                cmd.Parameters.AddWithValue("@class_name", cls.Class_Name ?? (object)DBNull.Value);
+
 
                 con.Open();
                 cmd.ExecuteNonQuery();
+                return true;
             }
         }
 
@@ -82,13 +104,14 @@ namespace StudentsDataApp.DAL
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.AddWithValue("@class_id", cls.Class_ID);
-                cmd.Parameters.AddWithValue("@class_name", cls.Class_Name);
+                cmd.Parameters.AddWithValue("@class_name", cls.Class_Name ?? (object)DBNull.Value);
 
                 con.Open();
                 cmd.ExecuteNonQuery();
             }
         }
 
+        [Obsolete]
         public void DeleteClass(int id)
         {
             using(SqlConnection con = new SqlConnection(cs))

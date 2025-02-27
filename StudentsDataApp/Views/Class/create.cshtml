@@ -1,38 +1,60 @@
 ﻿@model StudentsDataApp.Models.Class
 
 @{
-    ViewData["Title"] = "create";
+    ViewData["Title"] = "Create";
 }
 
-<h1>create</h1>
+<h1>Add Class</h1>
 
 <h4>Class</h4>
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="create">
+        <form id="classForm" asp-action="create">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="Class_ID" class="control-label"></label>
-                <input asp-for="Class_ID" class="form-control" />
-                <span asp-validation-for="Class_ID" class="text-danger"></span>
-            </div>
+
             <div class="form-group">
                 <label asp-for="Class_Name" class="control-label"></label>
-                <input asp-for="Class_Name" class="form-control" />
-                <span asp-validation-for="Class_Name" class="text-danger"></span>
+                <input id="Class_Name" name="Class_Name" class="form-control" />
+                <span id="error-message" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+                <input type="submit" value="Save" class="btn btn-primary mt-3" id="saveBtn" />
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+<script>
+     $(document).ready(function () {
+         $("#classForm").submit(function (event) {
+             event.preventDefault();
+
+             var className = $("#Class_Name").val().trim();
+             $("#error-message").text("");
+
+             if (className === "") {
+                 $("#error-message").text("Class name is required.");
+                 return false;
+             }
+
+             $.ajax({
+                 url: "/Class/Create",
+                 type: "POST",
+                 data: { Class_Name: className },
+                 dataType: "json",
+                 success: function (response) {
+                     if (response.success) {
+                         alert(response.message);
+                         window.location.href = "/Class/Index";
+                     } else {
+                         $("#error-message").text(response.message);
+                     }
+                 },
+             });
+         });
+     });
+</script>
+

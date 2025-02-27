@@ -16,27 +16,47 @@ namespace StudentsDataApp.Controllers
 
        
         [Obsolete]
-        public ActionResult GetAllClasses()
+        public  JsonResult GetAllClasses()
         {
-            List<Class> cls = dal.GetAllClasses();
-            return View(cls);
+            List<Class> clslist = dal.GetAllClasses();
+            return Json(clslist);
             
         }
 
-       
-        [Obsolete]
-        public JsonResult create(Class cls)
+        public IActionResult create()
         {
+            return View(); 
+        }
+        [HttpPost]
+        [Obsolete]
+        public JsonResult Create(Class cls)
+        {
+            if (dal.ClassExists(cls)) 
+            {
+                return Json(new { success = false, message = "This class name already exists. Try a different class name." });
+            }
+
             dal.AddClass(cls);
             return Json(new { success = true, message = "Class added successfully!" });
         }
+
+        [HttpGet]
+        [Obsolete]
+        public JsonResult GetClassById(int id)
+        {
+            Class cls = dal.GetClassById(id);
+            return Json(cls);
+        }
+
 
         [Obsolete]
         public ActionResult edit(int id)
         {
             Class cls = dal.GetClassById(id);
+            ViewBag.ClassId = cls.Class_ID;
             return View(cls);
         }
+
         [HttpPost]
         [Obsolete]
         public JsonResult edit(Class cls)
@@ -46,7 +66,7 @@ namespace StudentsDataApp.Controllers
         }
 
         [HttpPost]
-        
+        [Obsolete]
         public JsonResult delete(int id)
         {
             dal.DeleteClass(id);
