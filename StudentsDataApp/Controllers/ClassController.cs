@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using StudentsDataApp.DAL;
 using StudentsDataApp.Models;
 
@@ -7,71 +6,75 @@ namespace StudentsDataApp.Controllers
 {
     public class ClassController : Controller
     {
-        private readonly ClassDataAccessLayer dal;
+
+        private readonly ClassDAL dal;
 
         public ClassController()
         {
-            dal = new ClassDataAccessLayer();
+            dal = new ClassDAL();
         }
 
-       
+
         [Obsolete]
-        public  JsonResult GetAllClasses()
+        public JsonResult GetAllClasses()
         {
-            List<Class> clslist = dal.GetAllClasses();
-            return Json(clslist);
-            
+            List<ClassModel> classList = dal.GetAllClasses();
+            return Json(classList);
         }
 
-        public IActionResult create()
-        {
-            return View(); 
-        }
-        [HttpPost]
-        [Obsolete]
-        public JsonResult Create(Class cls)
-        {
-            if (dal.ClassExists(cls)) 
-            {
-                return Json(new { success = false, message = "This class name already exists. Try a different class name." });
-            }
 
-            dal.AddClass(cls);
-            return Json(new { success = true, message = "Class added successfully!" });
-        }
 
         [HttpGet]
-        [Obsolete]
-        public JsonResult GetClassById(int id)
+        public IActionResult CreateEdit(int? id)
         {
-            Class cls = dal.GetClassById(id);
-            return Json(cls);
-        }
+            if (id == null)
+            {
+                return View(new ClassModel()); 
+            }
 
-
-        [Obsolete]
-        public ActionResult edit(int id)
-        {
-            Class cls = dal.GetClassById(id);
-            ViewBag.ClassId = cls.Class_ID;
+            ClassModel cls = dal.GetClassById(id.Value);
             return View(cls);
         }
 
         [HttpPost]
-        [Obsolete]
-        public JsonResult edit(Class cls)
+        public JsonResult SaveClass(ClassModel cls)
         {
-            dal.UpdateClass(cls);
-            return Json(new { success = true, message = "Class updated successfully!" });
+            if (cls == null || string.IsNullOrWhiteSpace(cls.ClassName))
+            {
+                return Json(new { success = false, message = "Class name is required." });
+            }
+
+            try
+            {
+                string resultMessage = cls.ClassID == 0 ? dal.AddClass(cls) : dal.UpdateClass(cls);
+
+                if (resultMessage.Contains("exists"))
+                {
+                    return Json(new { success = false, message = resultMessage });
+                }
+
+                return Json(new { success = true, message = resultMessage });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "An error occurred: " + ex.Message });
+            }
         }
+
+
+
+
 
         [HttpPost]
         [Obsolete]
-        public JsonResult delete(int id)
+        public JsonResult DeleteClass(int classID)
         {
-            dal.DeleteClass(id);
-            return Json(new { success = true, message = "Class deleted successfully!" });
+            bool isDeleted = dal.DeleteClass(classID);
+            return Json(new { success = isDeleted, message = isDeleted ? "Class deleted successfully!" : "Error deleting class!" });
         }
+
+
+       
         public IActionResult Index()
         {
             return View();

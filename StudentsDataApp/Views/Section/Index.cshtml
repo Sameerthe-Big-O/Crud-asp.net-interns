@@ -3,75 +3,80 @@
 }
 
 <h2>Sections</h2>
+<button id="btnAddSection" class="btn btn-primary">Add Section</button>
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Section Name</th>
+            <th>Class Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="sectionTableBody">
+        
+    </tbody>
+</table>
 
- <button  class="btn btn-primary mb-3" id="addSectionBtn">Add Section</button>
-
-<div class="container">
- <div id="sectionFormContainer" class="card  p-4 mb-4" style="display: none;">
-        <h4 class="mb-3">Add New Section</h4>
-        <form id="sectionForm">
-            <div class="mb-3">
-                <label for="sectionName" class="form-label">Section Name</label>
-                <input type="text" class="form-control" id="sectionName" name="sectionName">
-            </div>
-            <div class="mb-3">
-                <label for="classId" class="form-label">Class</label>
-                <select class="form-control" id="classId" name="classId">
-                    <option value="">Select Class</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Section</button>
-        </form>
-    </div>
-
-  
-    <div class="container">
-        <h4 class="mb-3">Sections List</h4>
-        <table class="table table-bordered">
-            <thead class="table">
-                <tr>
-                    <th>Section ID</th>
-                    <th>Section Name</th>
-                    <th>Class Name</th>
-                </tr>
-            </thead>
-            <tbody id="sectionTableBody">
-                
-            </tbody>
-        </table>
-    </div>
-</div>
-
-@section Scripts {
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function () {
-                $("#addSectionBtn").click(function () {
-                window.location.href = "/Section/Create";
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        loadSections(); 
+        function loadSections() {
+            $.ajax({
+                url: "/Section/GetAllSections",
+                type: "GET",
+                success: function (sections) {
+                    $("#sectionTableBody").empty();
+                    $.each(sections, function (index, section) {
+                        var row = `<tr id="row_${section.sectionId}">
+                                        <td>${section.sectionName}</td>
+                                        <td>${section.className}</td>
+                                        <td>
+                                            <button class="btn btn-warning btnEdit" data-id="${section.sectionId}">Edit</button>
+                                            <button class="btn btn-danger btnDelete" data-id="${section.sectionId}">Delete</button>
+                                        </td>
+                                    </tr>`;
+                        $("#sectionTableBody").append(row);
+                    });
+                },
+                error: function () {
+                    alert("Failed to load sections.");
+                }
             });
-            loadSections();
+        }
 
-          
-            function loadSections() {
+        
+        $("#btnAddSection").click(function () {
+            window.location.href = "/Section/CreateEdit";
+        });
+
+        
+        $(document).on("click", ".btnEdit", function () {
+            var sectionId = $(this).data("id");
+            window.location.href = "/Section/CreateEdit/" + sectionId;
+        });
+
+       
+        $(document).on("click", ".btnDelete", function () {
+            var sectionId = $(this).data("id");
+            if (confirm("Are you sure you want to delete this section?")) {
                 $.ajax({
-                    url:"Section/GetAllSections",
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function (data) {
-                        $("#sectionTableBody").empty();
-                        $.each(data, function (index, section) {
-                            $("#sectionTableBody").append(
-                                `<tr>
-                                    <td>${section.section_Id}</td>
-                                    <td>${section.section_Name}</td>
-                                    <td>${section.class ? section.class.class_Name : 'N/A'}</td>
-
-                                </tr>`
-                            );
-                        });
+                    url: "/Section/DeleteSection",
+                    type: "POST",
+                    data: { sectionId: sectionId },
+                    success: function (response) {
+                        if (response.success) {
+                            alert(response.message);
+                            loadSections(); 
+                        } else {
+                            alert("Error: " + response.message);
+                        }
                     },
+                    error: function () {
+                        alert("An error occurred while deleting the section.");
+                    }
                 });
             }
         });
-    </script>
-}
+    });
+</script>

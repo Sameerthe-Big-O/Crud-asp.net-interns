@@ -1,6 +1,6 @@
 ﻿namespace StudentsDataApp.Models
 {
-    public class Students
+    public class StudentsModel
     {
         public int Id { get; set; }
 
@@ -15,5 +15,13 @@
         public string Email { get; set; }
 
         public byte[] Image { get; set; }
+
+        public int ClassID { get; set; }
+
+        public string ClassName { get; set; }
+
+        public int SectionID { get; set; }
+
+        public string SectionName { get; set; }
     }
 }

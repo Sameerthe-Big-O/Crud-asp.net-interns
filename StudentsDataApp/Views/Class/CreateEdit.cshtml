@@ -1,0 +1,62 @@
+﻿
+
+<h2 id="formHeading">@(Model.ClassID == 0 ? "Add Class" : "Edit Class")</h2>
+
+<form id="classForm">
+    <input type="hidden" id="ClassID" value="@Model.ClassID" />
+
+    <div class="form-group">
+        <label for="ClassName">Class Name</label>
+        <input type="text" id="ClassName" class="form-control" value="@Model.ClassName" />
+        <span id="messageBox" style="color: red; display: none;"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3" id="saveBtn">
+        @(Model.ClassID == 0 ? "Save Class" : "Update Class")
+    </button>
+</form>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+      $(document).ready(function () {
+        $("#saveBtn").click(function (e) {
+            e.preventDefault(); 
+
+            var className = $("#ClassName").val().trim();
+            var classId = $("#ClassID").val();
+
+            $("#messageBox").hide().text("");
+
+            if (className === "") {
+                $("#messageBox").text("Class name is required.").show();
+                return;
+            }
+
+            $("#saveBtn").prop("disabled", true);
+
+            $.ajax({
+                url: "/Class/SaveClass",
+                type: "POST",
+                data: { ClassID: classId, ClassName: className },
+                success: function (response) {
+                    if (response.success) {
+                        alert(response.message); 
+                        window.location.href = "/Class/Index"; 
+                    } else {
+                        $("#messageBox").text(response.message).show(); 
+                    }
+                    $("#saveBtn").prop("disabled", false); 
+                },
+                error: function () {
+                    $("#messageBox").text("An error occurred while processing the request.")
+                        .css("color", "red").show();
+                    $("#saveBtn").prop("disabled", false);
+                }
+            });
+        });
+    });
+
+</script>
+
+

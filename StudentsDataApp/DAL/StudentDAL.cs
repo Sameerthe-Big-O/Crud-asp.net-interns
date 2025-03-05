@@ -2,18 +2,18 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 using StudentsDataApp.Models;
 
 namespace StudentsDataApp.DAL
 {
-    public class StudentDataAccessLayer
+    public class StudentDAL
     {
         string cs = ConnectionString.dbcs;
 
-        public List<Students> GetAllStudents()
+        public List<StudentsModel> GetAllStudents()
         {
-            List<Students> studList = new List<Students>();
+            List<StudentsModel> studList = new List<StudentsModel>();
 
             using (SqlConnection con = new SqlConnection(cs))
             {
@@ -24,7 +24,7 @@ namespace StudentsDataApp.DAL
 
                 while (reader.Read())
                 {
-                    Students stud = new Students
+                    StudentsModel stud = new StudentsModel
                     {
                         Id = reader["Id"] as int? ?? 0,
                         First_Name = reader["First_Name"] as string ?? string.Empty,
@@ -32,9 +32,12 @@ namespace StudentsDataApp.DAL
                         Roll_Number = reader["Roll_Number"] as int? ?? 0,
                         Marks = reader["Marks"] as int? ?? 0,
                         Email = reader["Email"] as string ?? string.Empty,
-                        Image = reader["Image"] as byte[] ?? null
+                        Image = reader["Image"] as byte[] ,
+                        ClassID = reader["ClassID"] as int? ?? 0,
+                        ClassName = reader["ClassName"] as string ?? string.Empty,
+                        SectionID = reader["SectionID"] as int? ?? 0,
+                        SectionName = reader["SectionName"] as string ?? string.Empty
                     };
-
 
                     studList.Add(stud);
                 }
@@ -42,20 +45,20 @@ namespace StudentsDataApp.DAL
             return studList;
         }
 
-        public Students GetStudentById(int id)
+        public StudentsModel GetStudentById(int id)
         {
-            Students stud = null;
+            StudentsModel stud = null;
             using (SqlConnection con = new SqlConnection(cs))
             {
-                SqlCommand cmd = new SqlCommand("SELECT * FROM Students WHERE Id = @id", con);
-                cmd.CommandType = CommandType.Text;
+                SqlCommand cmd = new SqlCommand("spGetStudentById", con);
+                cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@id", id);
                 con.Open();
                 SqlDataReader reader = cmd.ExecuteReader();
 
                 if (reader.Read())
                 {
-                    stud = new Students
+                    stud = new StudentsModel
                     {
                         Id = Convert.ToInt32(reader["Id"]),
                         First_Name = reader["First_Name"].ToString(),
@@ -63,15 +66,18 @@ namespace StudentsDataApp.DAL
                         Roll_Number = Convert.ToInt32(reader["Roll_Number"]),
                         Marks = Convert.ToInt32(reader["Marks"]),
                         Email = reader["Email"].ToString(),
-                        Image = reader["Image"] as byte[] ?? null
+                        Image = reader["Image"] as byte[] ?? null,
+                        ClassID = Convert.ToInt32(reader["ClassID"]),
+                        ClassName = reader["ClassName"].ToString(),
+                        SectionID = Convert.ToInt32(reader["SectionID"]),
+                        SectionName = reader["SectionName"].ToString()
                     };
                 }
             }
             return stud;
         }
 
-
-        public void AddStudent(Students stud)
+        public void AddStudent(StudentsModel stud)
         {
             using (SqlConnection con = new SqlConnection(cs))
             {
@@ -84,15 +90,15 @@ namespace StudentsDataApp.DAL
                 cmd.Parameters.AddWithValue("@marks", stud.Marks);
                 cmd.Parameters.AddWithValue("@email", stud.Email);
                 cmd.Parameters.Add("@image", SqlDbType.VarBinary, -1).Value = (object)stud.Image ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@class_id", stud.ClassID);
+                cmd.Parameters.AddWithValue("@section_id", stud.SectionID);
 
                 con.Open();
                 cmd.ExecuteNonQuery();
-                
             }
         }
 
-
-        public void UpdateStudent(Students stud)
+        public void UpdateStudent(StudentsModel stud)
         {
             using (SqlConnection con = new SqlConnection(cs))
             {
@@ -106,13 +112,13 @@ namespace StudentsDataApp.DAL
                 cmd.Parameters.AddWithValue("@marks", stud.Marks);
                 cmd.Parameters.AddWithValue("@email", stud.Email);
                 cmd.Parameters.Add("@image", SqlDbType.VarBinary, -1).Value = (object)stud.Image ?? DBNull.Value;
-
+                cmd.Parameters.AddWithValue("@class_id", stud.ClassID);
+                cmd.Parameters.AddWithValue("@section_id", stud.SectionID);
 
                 con.Open();
                 cmd.ExecuteNonQuery();
             }
         }
-
 
         public void DeleteStudent(int id)
         {
@@ -125,5 +131,65 @@ namespace StudentsDataApp.DAL
                 cmd.ExecuteNonQuery();
             }
         }
+
+        public List<ClassModel> GetAllClasses()
+        {
+            List<ClassModel> classList = new List<ClassModel>();
+
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                SqlCommand cmd = new SqlCommand("spGetAllClasses", con);
+                cmd.CommandType = CommandType.StoredProcedure;
+                con.Open();
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    ClassModel cls = new ClassModel
+                    {
+                        ClassID = Convert.ToInt32(reader["ClassID"]),
+                        ClassName = reader["ClassName"].ToString()
+                    };
+                    classList.Add(cls);
+                }
+            }
+            return classList;
+        }
+
+
+        public List<SectionModel> GetSectionsByClassId(int classId)
+        {
+            List<SectionModel> sectionList = new List<SectionModel>();
+
+            using (SqlConnection con = new SqlConnection(cs))
+            {
+                using (SqlCommand cmd = new SqlCommand("spGetSectionsByClassId", con))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@ClassId", classId);
+
+                    con.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            Debug.WriteLine($"SectionId: {reader["SectionId"]}, SectionName: {reader["SectionName"]}");
+
+                            SectionModel section = new SectionModel
+                            {
+                                SectionId = Convert.ToInt32(reader["SectionId"]),
+                                SectionName = reader["SectionName"].ToString(),
+                                ClassId = Convert.ToInt32(reader["ClassId"])
+                            };
+                            sectionList.Add(section);
+                        }
+                    }
+                }
+            }
+
+            Debug.WriteLine($"Total Sections Found: {sectionList.Count}");
+            return sectionList;
+        }
+
     }
 }

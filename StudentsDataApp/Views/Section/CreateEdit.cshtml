@@ -1,0 +1,85 @@
+﻿@{
+	ViewData["Title"] = Model.SectionId > 0 ? "Edit Section" : "Add Section";
+}
+<h2 id="formTitle">@ViewData["Title"]</h2>
+
+
+
+<form id="sectionForm">
+	<input type="hidden" id="SectionId" value="@Model.SectionId" />
+
+	<div class="form-group">
+		<label>Class Name</label>
+		<select id="ClassId" name="ClassId" class="form-control" required>
+			<option value="">--Select Class--</option>
+			@foreach (var cls in (List<StudentsDataApp.Models.ClassModel>)ViewBag.ClassList)
+			{
+				<option value="@cls.ClassID" selected="@(Model.ClassId == cls.ClassID ? "selected" : null)">
+					@cls.ClassName
+				</option>
+			}
+		</select>
+	</div>
+
+	<div class="form-group">
+		<label>Section Name</label>
+		<input type="text" id="SectionName" class="form-control" value="@Model.SectionName" required />
+	</div>
+
+	<button type="button" id="btnSave" class="btn btn-success mt-3">@((Model.SectionId > 0) ? "Update Section" : "Save Section")</button>
+</form>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+			 $(document).ready(function () {
+		$('#btnSave').click(function () {
+			let sectionName = $('#SectionName').val().trim();
+			let classId = $('#ClassId').val();
+			let isValid = true;
+
+			// Remove previous error messages
+			$('.error-message').remove();
+
+			if (classId === "") {
+				$('#ClassId').after('<span class="error-message text-danger">Please select a class.</span>');
+				isValid = false;
+			}
+			if (sectionName === "") {
+				$('#SectionName').after('<span class="error-message text-danger">Section Name is required.</span>');
+				isValid = false;
+			}
+
+			if (!isValid) return; // Stop execution if validation fails
+
+			let section = {
+				SectionId: $('#SectionId').val() || 0,
+				SectionName: sectionName,
+				ClassId: classId
+			};
+
+			$.ajax({
+				url: '/Section/SaveSection',
+				type: 'POST',
+				data: section,
+				success: function (res) {
+					if (res.success) {
+						alert(res.message);
+						window.location.href = '/Section/Index';
+					} else {
+						// Display existing section error below the SectionName field
+						$('#SectionName').after('<span class="error-message text-danger">' + res.message + '</span>');
+					}
+				},
+				error: function () {
+					alert("Error occurred while saving.");
+				}
+			});
+		});
+
+		// Remove error messages when user starts typing/selecting
+		$('#ClassId, #SectionName').on('input change', function () {
+			$(this).next('.error-message').remove();
+		});
+	});
+
+</script>
+

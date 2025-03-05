@@ -6,38 +6,69 @@ namespace StudentsDataApp.Controllers
 {
     public class SectionController : Controller
     {
-        private readonly SectionDataAccessLayer dal;
+
+        private readonly SectionDAL dal;
 
         public SectionController()
         {
-            dal = new SectionDataAccessLayer();
+            dal = new SectionDAL();
         }
+
 
         [Obsolete]
         public JsonResult GetAllSections()
         {
-            List<Section> sectionlist = dal.GetAllSections();
-            return Json(sectionlist);
+            List<SectionModel> sectionList = dal.GetAllSections();
+            return Json(sectionList);
         }
-
-        public IActionResult Create()
+        public ActionResult CreateEdit(int? id)
         {
-            return View();
+            ViewBag.ClassList = dal.GetAllClasses();
+
+            SectionModel sec = new SectionModel();
+
+            if (id.HasValue) 
+            {
+                sec = dal.GetSectionById(id.Value);
+            }
+
+            return View(sec);
         }
         [HttpPost]
-        [Obsolete]
-        public JsonResult Create(Section sec)
-        { 
-            dal.AddSection(sec);
-            return Json(new { success = true, message = "Section added successfully!" });
+        public JsonResult SaveSection(SectionModel section)
+        {
+            bool result = false;
+            string message = "";
+
+            
+            if (dal.SectionExists(section.SectionName, section.ClassId))
+            {
+                return Json(new { success = false, message = "This section already exists in the selected class. Try a different section." });
+            }
+
+            if (section.SectionId > 0)
+            {
+                result = dal.UpdateSection(section);
+                message = result ? "Section updated successfully!" : "Failed to update section.";
+            }
+            else
+            {
+                result = dal.AddSection(section);
+                message = result ? "Section added successfully!" : "Failed to add section.";
+            }
+
+            return Json(new { success = result, message = message });
         }
 
-        [Obsolete]
-        public JsonResult GetAllClasses()
-        {
-            List<Class> clslist = dal.GetAllClasses();
-            return Json(clslist);
 
+
+
+        [HttpPost]
+        [Obsolete]
+        public JsonResult DeleteSection(int sectionId)
+        {
+            bool isDeleted = dal.DeleteSection(sectionId);
+            return Json(new { success = isDeleted, message = isDeleted ? "Section deleted successfully!" : "Error deleting section!" });
         }
         public IActionResult Index()
         {
