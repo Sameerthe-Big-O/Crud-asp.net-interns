@@ -52,8 +52,6 @@ namespace StudentsDataApp.DAL
             }
         }
 
-
-
         public string AddClass(ClassModel cls)
         {
             using (SqlConnection con = new SqlConnection(cs))
@@ -87,23 +85,21 @@ namespace StudentsDataApp.DAL
             }
         }
 
-
-
         [Obsolete]
-        public bool DeleteClass(int classID)
+        public string DeleteClass(int classID)
         {
             using (SqlConnection con = new SqlConnection(cs))
             {
                 SqlCommand cmd = new SqlCommand("spDeleteClass", con);
                 cmd.CommandType = CommandType.StoredProcedure;
-
                 cmd.Parameters.AddWithValue("@ClassID", classID);
 
                 con.Open();
-                int rowsAffected = cmd.ExecuteNonQuery();
-                return rowsAffected > 0;
+                string message = cmd.ExecuteScalar()?.ToString();
+                con.Close();
+
+                return message ?? "Unknown error occurred.";
             }
         }
-
     }
 }

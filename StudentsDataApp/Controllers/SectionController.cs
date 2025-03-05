@@ -14,7 +14,6 @@ namespace StudentsDataApp.Controllers
             dal = new SectionDAL();
         }
 
-
         [Obsolete]
         public JsonResult GetAllSections()
         {
@@ -37,39 +36,35 @@ namespace StudentsDataApp.Controllers
         [HttpPost]
         public JsonResult SaveSection(SectionModel section)
         {
-            bool result = false;
             string message = "";
-
-            
-            if (dal.SectionExists(section.SectionName, section.ClassId))
-            {
-                return Json(new { success = false, message = "This section already exists in the selected class. Try a different section." });
-            }
 
             if (section.SectionId > 0)
             {
-                result = dal.UpdateSection(section);
-                message = result ? "Section updated successfully!" : "Failed to update section.";
+              
+                message = dal.UpdateSection(section);
             }
             else
             {
-                result = dal.AddSection(section);
-                message = result ? "Section added successfully!" : "Failed to add section.";
+                
+                message = dal.AddSection(section);
             }
 
-            return Json(new { success = result, message = message });
+          
+            bool success = message.Contains("successfully");
+
+            return Json(new { success = success, message = message });
         }
-
-
-
 
         [HttpPost]
         [Obsolete]
         public JsonResult DeleteSection(int sectionId)
         {
-            bool isDeleted = dal.DeleteSection(sectionId);
-            return Json(new { success = isDeleted, message = isDeleted ? "Section deleted successfully!" : "Error deleting section!" });
+            string message = dal.DeleteSection(sectionId);
+            bool isDeleted = message.Contains("successfully");
+
+            return Json(new { success = isDeleted, message = message });
         }
+
         public IActionResult Index()
         {
             return View();

@@ -3,8 +3,6 @@
 }
 <h2 id="formTitle">@ViewData["Title"]</h2>
 
-
-
 <form id="sectionForm">
 	<input type="hidden" id="SectionId" value="@Model.SectionId" />
 
@@ -36,7 +34,7 @@
 			let classId = $('#ClassId').val();
 			let isValid = true;
 
-			// Remove previous error messages
+			
 			$('.error-message').remove();
 
 			if (classId === "") {
@@ -48,7 +46,7 @@
 				isValid = false;
 			}
 
-			if (!isValid) return; // Stop execution if validation fails
+			if (!isValid) return; 
 
 			let section = {
 				SectionId: $('#SectionId').val() || 0,
@@ -65,7 +63,7 @@
 						alert(res.message);
 						window.location.href = '/Section/Index';
 					} else {
-						// Display existing section error below the SectionName field
+						
 						$('#SectionName').after('<span class="error-message text-danger">' + res.message + '</span>');
 					}
 				},
@@ -75,7 +73,7 @@
 			});
 		});
 
-		// Remove error messages when user starts typing/selecting
+		
 		$('#ClassId, #SectionName').on('input change', function () {
 			$(this).next('.error-message').remove();
 		});

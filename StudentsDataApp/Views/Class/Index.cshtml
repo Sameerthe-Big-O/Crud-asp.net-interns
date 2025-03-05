@@ -2,64 +2,73 @@
 <button class="btn btn-primary mb-3" id="addClassBtn">Add Class</button>
 
 <table id="classTable" class="table table-striped table-bordered">
-    <thead class="thead-dark">
-        <tr>
-            <th>Name</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-    </tbody>
+	<thead class="thead-dark">
+		<tr>
+			<th>Name</th>
+			<th>Actions</th>
+		</tr>
+	</thead>
+	<tbody>
+	</tbody>
 </table>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    $(document).ready(function () {
-        loadClasses();
+	$(document).ready(function () {
+		loadClasses();
 
-        function loadClasses() {
-            $.ajax({
-                url: '/Class/GetAllClasses',
-                type: 'GET',
-                dataType: 'json',
-                success: function (data) {
-                    var rows = '';
-                    $.each(data, function (index, item) {
-                        rows += `<tr>
-                            <td>${item.className}</td>
-                            <td>
-                                <button class="btn btn-warning btn-sm editBtn" data-id="${item.classID}">Edit</button>
-                                <button class="btn btn-danger btn-sm deleteBtn" data-id="${item.classID}">Delete</button>
-                            </td>
-                        </tr>`;
-                    });
-                    $('#classTable tbody').html(rows);
-                }
-            });
-        }
+		function loadClasses() {
+			$.ajax({
+				url: '/Class/GetAllClasses',
+				type: 'GET',
+				dataType: 'json',
+				success: function (data) {
+					var rows = '';
+					$.each(data, function (index, item) {
+						rows += `<tr>
+							<td>${item.className}</td>
+							<td>
+								<button class="btn btn-warning btn-sm editBtn" data-id="${item.classID}">Edit</button>
+								<button class="btn btn-danger btn-sm deleteBtn" data-id="${item.classID}">Delete</button>
+							</td>
+						</tr>`;
+					});
+					$('#classTable tbody').html(rows);
+				}
+			});
+		}
 
-        $('#addClassBtn').click(function () {
-            window.location.href = '/Class/CreateEdit';
-        });
+		$('#addClassBtn').click(function () {
+			window.location.href = '/Class/CreateEdit';
+		});
 
-        $(document).on('click', '.editBtn', function () {
-            var classID = $(this).data('id');
-            window.location.href = '/Class/CreateEdit/' + classID;
-        });
+		$(document).on('click', '.editBtn', function () {
+			var classID = $(this).data('id');
+			window.location.href = '/Class/CreateEdit/' + classID;
+		});
 
-        $(document).on('click', '.deleteBtn', function () {
-            var classID = $(this).data('id');
-            if (confirm('Are you sure you want to delete this class?')) {
-                $.ajax({
-                    url: '/Class/DeleteClass',
-                    type: 'POST',
-                    data: { classID: classID },
-                    success: function (response) {
-                        alert(response.message);
-                        loadClasses();
-                    }
-                });
-            }
-        });
-    });
+			$(document).on('click', '.deleteBtn', function () {
+		var classID = $(this).data('id');
+
+		if (confirm('Are you sure you want to delete this class?')) {
+			$.ajax({
+				url: '/Class/DeleteClass',
+				type: 'POST',
+				data: { classID: classID },
+				success: function (response) {
+					if (response.success) {
+						alert(response.message);
+						loadClasses();
+					} else {
+						alert("Warning: " + response.message);
+					}
+				},
+				error: function (xhr, status, error) {
+					alert("Error: " + xhr.responseText || "An unexpected error occurred.");
+				}
+			});
+		}
+	});
+
+	});
 </script>

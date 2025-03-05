@@ -7,166 +7,239 @@
 	<form id="studentForm" enctype="multipart/form-data">
 		<input type="hidden" id="studentId" name="Id" />
 
-		<div class="form-group">
-			<label for="firstName">First Name:</label>
-			<input type="text" class="form-control" id="firstName" name="First_Name" />
+		<div class="row">
+			<div class="col-md-6">
+				<label for="firstName">First Name:</label>
+				<input type="text" class="form-control" id="firstName" name="First_Name" />
+			</div>
+
+			<div class="col-md-6">
+				<label for="lastName">Last Name:</label>
+				<input type="text" class="form-control" id="lastName" name="Last_Name" />
+			</div>
 		</div>
 
-		<div class="form-group">
-			<label for="lastName">Last Name:</label>
-			<input type="text" class="form-control" id="lastName" name="Last_Name" />
+		<div class="row mt-3">
+			<div class="col-md-6">
+				<label for="rollNumber">Roll Number:</label>
+				<input type="number" class="form-control" id="rollNumber" name="Roll_Number" />
+			</div>
+
+			<div class="col-md-6">
+				<label for="classId">Class:</label>
+				<select class="form-control" id="classId" name="ClassId"></select>
+			</div>
 		</div>
 
-		<div class="form-group">
-			<label for="rollNumber">Roll Number:</label>
-			<input type="number" class="form-control" id="rollNumber" name="Roll_Number" />
+		<div class="row mt-3">
+			<div class="col-md-6">
+				<label for="sectionId">Section:</label>
+				<select class="form-control" id="sectionId" name="SectionId"></select>
+			</div>
+
+			<div class="col-md-6">
+				<label for="marks">Marks:</label>
+				<input type="number" class="form-control" id="marks" name="Marks" />
+			</div>
 		</div>
 
-		<div class="form-group">
-			<label for="classId">Class:</label>
-			<select class="form-control" id="classId" name="ClassId"></select>
+		<div class="row mt-3">
+			<div class="col-md-6">
+				<label for="email">Email:</label>
+				<input type="email" class="form-control" id="email" name="Email" />
+			</div>
+
+			<div class="col-md-6">
+				<label for="imageFile">Upload Image:</label>
+				<input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*" />
+				<img id="imagePreview" src="" class="mt-2 d-none" width="100" height="100" />
+			</div>
 		</div>
 
-		<div class="form-group">
-			<label for="sectionId">Section:</label>
-			<select class="form-control" id="sectionId" name="SectionId"></select>
-		</div>
 
-		<div class="form-group">
-			<label for="marks">Marks:</label>
-			<input type="number" class="form-control" id="marks" name="Marks" />
+		<div class="row mt-4">
+			<div class="col-12 text-center">
+				<button type="submit" class="btn btn-success">Save Student</button>
+			</div>
 		</div>
-
-		<div class="form-group">
-			<label for="email">Email:</label>
-			<input type="email" class="form-control" id="email" name="Email" />
-		</div>
-
-		<div class="form-group">
-			<label for="imageFile">Upload Image:</label>
-			<input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*" />
-			<img id="imagePreview" src="" class="mt-2 d-none" width="100" height="100" />
-		</div>
-
-		<button type="submit" class="btn btn-success mt-3">Save Student</button>
 	</form>
 </div>
 
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-	$(document).ready(function () {
+    $(document).ready(function () {
+        function showError(inputId, message) {
+            $("#" + inputId).next(".error-msg").remove();
+            $("#" + inputId).after(`<small class="error-msg text-danger">${message}</small>`);
+        }
 
-		function loadClasses() {
-			$.get("/Students/GetAllClasses", function (classes) {
-				var classDropdown = $("#classId");
-				classDropdown.empty().append('<option value="">--Select Class--</option>');
-				$.each(classes, function (index, item) {
-					classDropdown.append(`<option value="${item.classID}">${item.className}</option>`);
-				});
-			});
-		}
+        function clearErrors() {
+            $(".error-msg").remove();
+        }
 
-		function loadSections(classId, selectedSectionId = null) {
-			var sectionDropdown = $("#sectionId");
-			sectionDropdown.empty().append('<option value="">--Select Section--</option>');
+        function validateForm() {
+            clearErrors();
+            let isValid = true;
 
-			if (!classId) return;
+            if ($("#firstName").val().trim() === "") {
+                showError("firstName", "First Name is required.");
+                isValid = false;
+            }
 
-			$.get("/Students/GetSectionsByClassId", { classId: classId }, function (sections) {
-				if (!sections || sections.length === 0) {
-					sectionDropdown.append('<option value="">No Sections Available</option>');
-					return;
-				}
+            if ($("#lastName").val().trim() === "") {
+                showError("lastName", "Last Name is required.");
+                isValid = false;
+            }
 
-				$.each(sections, function (index, item) {
-					sectionDropdown.append(`<option value="${item.sectionId}">${item.sectionName}</option>`);
-				});
+            if ($("#rollNumber").val().trim() === "") {
+                showError("rollNumber", "Roll Number is required.");
+                isValid = false;
+            }
 
-				if (selectedSectionId) {
-					$("#sectionId").val(selectedSectionId);
-				}
-			}).fail(function () {
-				alert("Failed to load sections. Please try again.");
-			});
-		}
+            if ($("#classId").val().trim() === "") {
+                showError("classId", "Class is required.");
+                isValid = false;
+            }
 
-			function loadStudentData() {
-		const urlParams = new URLSearchParams(window.location.search);
-		const studentId = urlParams.get("id");
+            if ($("#sectionId").val().trim() === "") {
+                showError("sectionId", "Section is required.");
+                isValid = false;
+            }
 
-		if (studentId) {
-			$.get(`/Students/GetStudentById/${studentId}`, function (data) {
-				$("#studentId").val(data.id);
-				$("#firstName").val(data.first_Name);
-				$("#lastName").val(data.last_Name);
-				$("#rollNumber").val(data.roll_Number);
-				$("#marks").val(data.marks);
-				$("#email").val(data.email);
+            if ($("#marks").val().trim() === "") {
+                showError("marks", "Marks are required.");
+                isValid = false;
+            }
 
-				$.get("/Students/GetAllClasses", function (classes) {
-					var classDropdown = $("#classId");
-					classDropdown.empty().append('<option value="">--Select Class--</option>');
-					$.each(classes, function (index, item) {
-						classDropdown.append(`<option value="${item.classID}">${item.className}</option>`);
-					});
+            if ($("#email").val().trim() === "") {
+                showError("email", "Email is required.");
+                isValid = false;
+            } 
+            return isValid;
+        }
 
-					$("#classId").val(data.classID); 
-					loadSections(data.classID, data.sectionID); 
-				});
+        
 
-				if (data.image) {
-					$("#imagePreview").attr("src", `/Students/GetStudentImage?id=${data.id}`).removeClass("d-none");
-				}
+        $("#studentForm").submit(function (e) {
+            e.preventDefault();
 
-			}).fail(function () {
-				alert("Failed to load student data.");
-			});
-		}
-	}
+            if (!validateForm()) {
+                return;
+            }
 
+            var formData = new FormData(this);
+            $.ajax({
+                url: "/Students/SaveStudent",
+                type: "POST",
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    if (response.success) {
+                        alert(response.message);
+                        window.location.href = "/Students/Index";
+                    } else {
+                        alert("Error: " + response.message);
+                    }
+                },
+                error: function () {
+                    alert("Failed to save student. Please try again.");
+                }
+            });
+        });
 
-		$("#classId").change(function () {
-			var classId = $(this).val();
-			loadSections(classId);
-		});
+        $("input, select").change(function () {
+            $(this).next(".error-msg").remove();
+        });
 
-		$("#imageFile").change(function () {
-			const file = this.files[0];
-			if (file) {
-				const reader = new FileReader();
-				reader.onload = function (e) {
-					$("#imagePreview").attr("src", e.target.result).removeClass("d-none");
-				};
-				reader.readAsDataURL(file);
-			}
-		});
+        function loadClasses() {
+            $.get("/Students/GetAllClasses", function (classes) {
+                var classDropdown = $("#classId");
+                classDropdown.empty().append('<option value="">--Select Class--</option>');
+                $.each(classes, function (index, item) {
+                    classDropdown.append(`<option value="${item.classID}">${item.className}</option>`);
+                });
+            });
+        }
 
-		$("#studentForm").submit(function (e) {
-			e.preventDefault();
+        function loadSections(classId, selectedSectionId = null) {
+            var sectionDropdown = $("#sectionId");
+            sectionDropdown.empty().append('<option value="">--Select Section--</option>');
 
-			var formData = new FormData(this);
+            if (!classId) return;
 
-			$.ajax({
-				url: "/Students/SaveStudent",
-				type: "POST",
-				data: formData,
-				contentType: false,
-				processData: false,
-				success: function (response) {
-					if (response.success) {
-						alert(response.message);
-						window.location.href = "/Students/Index";
-					} else {
-						alert("Error: " + response.message);
-					}
-				},
-				error: function () {
-					alert("Failed to save student. Please try again.");
-				}
-			});
-		});
+            $.get("/Students/GetSectionsByClassId", { classId: classId }, function (sections) {
+                if (!sections || sections.length === 0) {
+                    sectionDropdown.append('<option value="">No Sections Available</option>');
+                    return;
+                }
 
-		loadClasses();
-		loadStudentData();
-	});
+                $.each(sections, function (index, item) {
+                    sectionDropdown.append(`<option value="${item.sectionId}">${item.sectionName}</option>`);
+                });
+
+                if (selectedSectionId) {
+                    $("#sectionId").val(selectedSectionId);
+                }
+            }).fail(function () {
+                alert("Failed to load sections. Please try again.");
+            });
+        }
+
+        function loadStudentData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const studentId = urlParams.get("id");
+
+            if (studentId) {
+                $.get(`/Students/GetStudentById/${studentId}`, function (data) {
+                    $("#studentId").val(data.id);
+                    $("#firstName").val(data.first_Name);
+                    $("#lastName").val(data.last_Name);
+                    $("#rollNumber").val(data.roll_Number);
+                    $("#marks").val(data.marks);
+                    $("#email").val(data.email);
+
+                    $.get("/Students/GetAllClasses", function (classes) {
+                        var classDropdown = $("#classId");
+                        classDropdown.empty().append('<option value="">--Select Class--</option>');
+                        $.each(classes, function (index, item) {
+                            classDropdown.append(`<option value="${item.classID}">${item.className}</option>`);
+                        });
+
+                        $("#classId").val(data.classID);
+                        loadSections(data.classID, data.sectionID);
+                    });
+
+                    if (data.image) {
+                        $("#imagePreview").attr("src", `/Students/GetStudentImage?id=${data.id}`).removeClass("d-none");
+                    }
+
+                }).fail(function () {
+                    alert("Failed to load student data.");
+                });
+            }
+        }
+
+        $("#classId").change(function () {
+            var classId = $(this).val();
+            loadSections(classId);
+        });
+
+        $("#imageFile").change(function () {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    $("#imagePreview").attr("src", e.target.result).removeClass("d-none");
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        loadClasses();
+        loadStudentData();
+    });
 </script>
+
+

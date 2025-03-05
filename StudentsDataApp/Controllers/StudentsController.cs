@@ -105,10 +105,6 @@ namespace StudentsDataApp.Controllers
             }
         }
 
-
-
-
-
         [HttpGet]
         public IActionResult GetStudentImage(int id)
         {
@@ -130,11 +126,6 @@ namespace StudentsDataApp.Controllers
 
             return File(stud.Image, "image/jpeg");
         }
-
-
-
-
-       
 
         [HttpDelete]
         public JsonResult DeleteStudent(int id)
@@ -169,10 +160,6 @@ namespace StudentsDataApp.Controllers
 
             return Json(section);
         }
-
-
-
-
         public JsonResult GetAllClasses()
         {
             List<ClassModel> classList = dal.GetAllClasses();

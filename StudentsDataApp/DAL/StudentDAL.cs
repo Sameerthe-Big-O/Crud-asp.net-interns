@@ -155,8 +155,6 @@ namespace StudentsDataApp.DAL
             }
             return classList;
         }
-
-
         public List<SectionModel> GetSectionsByClassId(int classId)
         {
             List<SectionModel> sectionList = new List<SectionModel>();

@@ -14,15 +14,12 @@ namespace StudentsDataApp.Controllers
             dal = new ClassDAL();
         }
 
-
         [Obsolete]
         public JsonResult GetAllClasses()
         {
             List<ClassModel> classList = dal.GetAllClasses();
             return Json(classList);
         }
-
-
 
         [HttpGet]
         public IActionResult CreateEdit(int? id)
@@ -61,20 +58,16 @@ namespace StudentsDataApp.Controllers
             }
         }
 
-
-
-
-
         [HttpPost]
         [Obsolete]
         public JsonResult DeleteClass(int classID)
         {
-            bool isDeleted = dal.DeleteClass(classID);
-            return Json(new { success = isDeleted, message = isDeleted ? "Class deleted successfully!" : "Error deleting class!" });
+            string message = dal.DeleteClass(classID);
+            bool isDeleted = message.Contains("successfully");
+
+            return Json(new { success = isDeleted, message = message });
         }
 
-
-       
         public IActionResult Index()
         {
             return View();
