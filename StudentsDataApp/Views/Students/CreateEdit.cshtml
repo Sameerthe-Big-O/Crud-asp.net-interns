@@ -56,6 +56,20 @@
 			</div>
 		</div>
 
+		<label class="mt-3">Education History:</label>
+		<div id="educationHistoryContainer">
+			<div class="row">
+				<div class="col-md-5">
+					<input type="text" class="form-control" name="EducationHistory[0].PreviousSchool" placeholder="Previous School" />
+				</div>
+				<div class="col-md-5">
+					<input type="text" class="form-control" name="EducationHistory[0].PreviousClass" placeholder="Previous Class" />
+				</div>
+				<div class="col-md-2">
+					<button type="button" class="btn btn-success" id="addEducationRow">+</button>
+				</div>
+			</div>
+		</div>
 
 		<div class="row mt-4">
 			<div class="col-12 text-center">
@@ -68,91 +82,101 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    $(document).ready(function () {
+        $(document).ready(function () {
+        // Add Education History Row
+        $('#addEducationRow').click(function () {
+            let index = $("#educationHistoryContainer .eduRow").length;
+            let newRow = `<div class="row mt-2 eduRow" id="eduRow_${index}">
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="EducationHistory[${index}].PreviousSchool" placeholder="Previous School" />
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="EducationHistory[${index}].PreviousClass" placeholder="Previous Class" />
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger removeEducationRow">-</button>
+                </div>
+            </div>`;
+
+            $('#educationHistoryContainer').append(newRow);
+        });
+
+        // Remove Education History Row
+        $(document).on('click', '.removeEducationRow', function () {
+            $(this).closest('.eduRow').remove();
+        });
+
+        // Show Error Message
         function showError(inputId, message) {
             $("#" + inputId).next(".error-msg").remove();
             $("#" + inputId).after(`<small class="error-msg text-danger">${message}</small>`);
         }
 
-        function clearErrors() {
-            $(".error-msg").remove();
-        }
-
+        // Validate Form
         function validateForm() {
-            clearErrors();
+            $(".error-msg").remove();
             let isValid = true;
 
-            if ($("#firstName").val().trim() === "") {
-                showError("firstName", "First Name is required.");
-                isValid = false;
-            }
+            let requiredFields = ["firstName", "lastName", "rollNumber", "classId", "sectionId", "marks", "email"];
+            requiredFields.forEach(field => {
+                if ($("#" + field).val().trim() === "") {
+                    showError(field, `${field.replace(/([A-Z])/g, ' $1')} is required.`);
+                    isValid = false;
+                }
+            });
 
-            if ($("#lastName").val().trim() === "") {
-                showError("lastName", "Last Name is required.");
-                isValid = false;
-            }
-
-            if ($("#rollNumber").val().trim() === "") {
-                showError("rollNumber", "Roll Number is required.");
-                isValid = false;
-            }
-
-            if ($("#classId").val().trim() === "") {
-                showError("classId", "Class is required.");
-                isValid = false;
-            }
-
-            if ($("#sectionId").val().trim() === "") {
-                showError("sectionId", "Section is required.");
-                isValid = false;
-            }
-
-            if ($("#marks").val().trim() === "") {
-                showError("marks", "Marks are required.");
-                isValid = false;
-            }
-
-            if ($("#email").val().trim() === "") {
-                showError("email", "Email is required.");
-                isValid = false;
-            } 
             return isValid;
         }
 
-        
+        // Submit Form via AJAX
+               $("#studentForm").submit(function (e) {
+        e.preventDefault();
 
-        $("#studentForm").submit(function (e) {
-            e.preventDefault();
+        if (!validateForm()) return;
 
-            if (!validateForm()) {
-                return;
-            }
+        var formData = new FormData(this);
 
-            var formData = new FormData(this);
-            $.ajax({
-                url: "/Students/SaveStudent",
-                type: "POST",
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function (response) {
-                    if (response.success) {
-                        alert(response.message);
-                        window.location.href = "/Students/Index";
-                    } else {
-                        alert("Error: " + response.message);
-                    }
-                },
-                error: function () {
-                    alert("Failed to save student. Please try again.");
-                }
-            });
+        // Remove old education history inputs to avoid duplicate entries
+        $("input[name^='EducationHistory']").remove();
+
+        // Manually append education history data
+        $("#educationHistoryContainer .eduRow").each(function (index) {
+            let previousSchool = $(this).find("input[name$='.PreviousSchool']").val();
+            let previousClass = $(this).find("input[name$='.PreviousClass']").val();
+
+            // Append dynamically to FormData
+            formData.append(`EducationHistory[${index}].PreviousSchool`, previousSchool);
+            formData.append(`EducationHistory[${index}].PreviousClass`, previousClass);
         });
 
+        $.ajax({
+            url: "/Students/SaveStudent",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                if (response.success) {
+                    alert(response.message);
+                    window.location.href = "/Students/Index";
+                } else {
+                    alert("Error: " + response.message);
+                }
+            },
+            error: function () {
+                alert("Failed to save student. Please try again.");
+            }
+        });
+    });
+
+
+
+        // Remove Error Message on Input Change
         $("input, select").change(function () {
             $(this).next(".error-msg").remove();
         });
 
+        // Load Classes
         function loadClasses() {
             $.get("/Students/GetAllClasses", function (classes) {
                 var classDropdown = $("#classId");
@@ -163,6 +187,7 @@
             });
         }
 
+        // Load Sections based on Class Selection
         function loadSections(classId, selectedSectionId = null) {
             var sectionDropdown = $("#sectionId");
             sectionDropdown.empty().append('<option value="">--Select Section--</option>');
@@ -187,45 +212,102 @@
             });
         }
 
-        function loadStudentData() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const studentId = urlParams.get("id");
+               function loadStudentData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get("id");
 
-            if (studentId) {
-                $.get(`/Students/GetStudentById/${studentId}`, function (data) {
-                    $("#studentId").val(data.id);
-                    $("#firstName").val(data.first_Name);
-                    $("#lastName").val(data.last_Name);
-                    $("#rollNumber").val(data.roll_Number);
-                    $("#marks").val(data.marks);
-                    $("#email").val(data.email);
+        if (studentId) {
+            $.get(`/Students/GetStudentById/${studentId}`, function (data) {
+                if (!data) {
+                    alert("No student found!");
+                    return;
+                }
 
-                    $.get("/Students/GetAllClasses", function (classes) {
-                        var classDropdown = $("#classId");
-                        classDropdown.empty().append('<option value="">--Select Class--</option>');
-                        $.each(classes, function (index, item) {
-                            classDropdown.append(`<option value="${item.classID}">${item.className}</option>`);
-                        });
+                $("#studentId").val(data.id);
+                $("#firstName").val(data.first_Name);
+                $("#lastName").val(data.last_Name);
+                $("#rollNumber").val(data.roll_Number);
+                $("#marks").val(data.marks);
+                $("#email").val(data.email);
 
-                        $("#classId").val(data.classID);
-                        loadSections(data.classID, data.sectionID);
+                // Load Class and Sections
+                $.get("/Students/GetAllClasses", function (classes) {
+                    var classDropdown = $("#classId");
+                    classDropdown.empty().append('<option value="">--Select Class--</option>');
+                    $.each(classes, function (index, item) {
+                        classDropdown.append(`<option value="${item.classID}">${item.className}</option>`);
                     });
 
-                    if (data.image) {
-                        $("#imagePreview").attr("src", `/Students/GetStudentImage?id=${data.id}`).removeClass("d-none");
-                    }
-
-                }).fail(function () {
-                    alert("Failed to load student data.");
+                    $("#classId").val(data.classID);
+                    loadSections(data.classID, data.sectionID);
                 });
-            }
-        }
 
+                // Load Image if Exists
+                if (data.image) {
+                    $("#imagePreview").attr("src", `/Students/GetStudentImage?id=${data.id}`).removeClass("d-none");
+                }
+
+                // Load Education History
+                if (data.educationHistory && data.educationHistory.length > 0) {
+                    $("#educationHistoryContainer").empty(); // Clear old data
+
+                    data.educationHistory.forEach((history, i) => {
+                        let addButton = i === data.educationHistory.length - 1
+                            ? `<button type="button" class="btn btn-success addEducationRow">+</button>`
+                            : "";
+
+                        let newRow = `<div class="row mt-2 eduRow" id="eduRow_${i}">
+                            <input type="hidden" name="EducationHistory[${i}].EducationHistoryId" value="${history.educationHistoryId}" />
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" name="EducationHistory[${i}].PreviousSchool"
+                                    value="${history.previousSchool}" placeholder="Previous School" />
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" name="EducationHistory[${i}].PreviousClass"
+                                    value="${history.previousClass}" placeholder="Previous Class" />
+                            </div>
+                            <div class="col-md-2">
+                                ${addButton}
+                                <button type="button" class="btn btn-danger removeEducationRow">-</button>
+                            </div>
+                        </div>`;
+
+                        $("#educationHistoryContainer").append(newRow);
+                    });
+
+                    // Attach event to new `+` button
+                    $(".addEducationRow").click(addEducationRow);
+                } else {
+                    // If no education history, show one empty row
+                    $("#educationHistoryContainer").html(`
+                        <div class="row">
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" name="EducationHistory[0].PreviousSchool" placeholder="Previous School" />
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" name="EducationHistory[0].PreviousClass" placeholder="Previous Class" />
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-success addEducationRow">+</button>
+                            </div>
+                        </div>
+                    `);
+                }
+
+            }).fail(function () {
+                alert("Failed to load student data.");
+            });
+        }
+    }
+
+
+        // Load Sections on Class Change
         $("#classId").change(function () {
             var classId = $(this).val();
             loadSections(classId);
         });
 
+        // Show Image Preview on File Select
         $("#imageFile").change(function () {
             const file = this.files[0];
             if (file) {
@@ -237,9 +319,9 @@
             }
         });
 
+        // Initialize Data
         loadClasses();
         loadStudentData();
     });
+
 </script>
-
-

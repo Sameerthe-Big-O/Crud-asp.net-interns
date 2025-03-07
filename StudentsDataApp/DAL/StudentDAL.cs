@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using StudentsDataApp.Models;
 
 namespace StudentsDataApp.DAL
@@ -10,6 +9,7 @@ namespace StudentsDataApp.DAL
     public class StudentDAL
     {
         string cs = ConnectionString.dbcs;
+        private EducationHistoryDAL edudal = new EducationHistoryDAL();
 
         public List<StudentsModel> GetAllStudents()
         {
@@ -26,17 +26,18 @@ namespace StudentsDataApp.DAL
                 {
                     StudentsModel stud = new StudentsModel
                     {
-                        Id = reader["Id"] as int? ?? 0,
-                        First_Name = reader["First_Name"] as string ?? string.Empty,
-                        Last_Name = reader["Last_Name"] as string ?? string.Empty,
-                        Roll_Number = reader["Roll_Number"] as int? ?? 0,
-                        Marks = reader["Marks"] as int? ?? 0,
-                        Email = reader["Email"] as string ?? string.Empty,
-                        Image = reader["Image"] as byte[] ,
-                        ClassID = reader["ClassID"] as int? ?? 0,
-                        ClassName = reader["ClassName"] as string ?? string.Empty,
-                        SectionID = reader["SectionID"] as int? ?? 0,
-                        SectionName = reader["SectionName"] as string ?? string.Empty
+                        Id = Convert.ToInt32(reader["Id"]),
+                        First_Name = reader["First_Name"].ToString(),
+                        Last_Name = reader["Last_Name"].ToString(),
+                        Roll_Number = Convert.ToInt32(reader["Roll_Number"]),
+                        Marks = Convert.ToInt32(reader["Marks"]),
+                        Email = reader["Email"].ToString(),
+                        Image = reader["Image"] as byte[] ?? null,
+                        ClassID = Convert.ToInt32(reader["ClassID"]),
+                        ClassName = reader["ClassName"].ToString(),
+                        SectionID = Convert.ToInt32(reader["SectionID"]),
+                        SectionName = reader["SectionName"].ToString(),
+                        EducationHistory = edudal.GetEducationHistoryByStudentId(Convert.ToInt32(reader["Id"]))
                     };
 
                     studList.Add(stud);
@@ -70,33 +71,46 @@ namespace StudentsDataApp.DAL
                         ClassID = Convert.ToInt32(reader["ClassID"]),
                         ClassName = reader["ClassName"].ToString(),
                         SectionID = Convert.ToInt32(reader["SectionID"]),
-                        SectionName = reader["SectionName"].ToString()
+                        SectionName = reader["SectionName"].ToString(),
+                        EducationHistory = edudal.GetEducationHistoryByStudentId(id)
                     };
                 }
             }
             return stud;
         }
 
-        public void AddStudent(StudentsModel stud)
+        public int AddStudent(StudentsModel stud)
         {
+            int newStudentId = 0;
+
             using (SqlConnection con = new SqlConnection(cs))
             {
                 SqlCommand cmd = new SqlCommand("spAddStudent", con);
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.AddWithValue("@first_Name", stud.First_Name);
-                cmd.Parameters.AddWithValue("@last_Name", stud.Last_Name);
-                cmd.Parameters.AddWithValue("@roll_Number", stud.Roll_Number);
-                cmd.Parameters.AddWithValue("@marks", stud.Marks);
-                cmd.Parameters.AddWithValue("@email", stud.Email);
+                cmd.Parameters.AddWithValue("@First_Name", stud.First_Name);
+                cmd.Parameters.AddWithValue("@Last_Name", stud.Last_Name);
+                cmd.Parameters.AddWithValue("@Roll_Number", stud.Roll_Number);
+                cmd.Parameters.AddWithValue("@Marks", stud.Marks);
+                cmd.Parameters.AddWithValue("@Email", stud.Email);
+                cmd.Parameters.AddWithValue("@ClassID", stud.ClassID);
+                cmd.Parameters.AddWithValue("@SectionID", stud.SectionID);
                 cmd.Parameters.Add("@image", SqlDbType.VarBinary, -1).Value = (object)stud.Image ?? DBNull.Value;
-                cmd.Parameters.AddWithValue("@class_id", stud.ClassID);
-                cmd.Parameters.AddWithValue("@section_id", stud.SectionID);
+
+                SqlParameter outputIdParam = new SqlParameter("@NewStudentId", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(outputIdParam);
 
                 con.Open();
                 cmd.ExecuteNonQuery();
+                newStudentId = Convert.ToInt32(outputIdParam.Value);
             }
+
+            return newStudentId;
         }
+
 
         public void UpdateStudent(StudentsModel stud)
         {
@@ -118,7 +132,32 @@ namespace StudentsDataApp.DAL
                 con.Open();
                 cmd.ExecuteNonQuery();
             }
+
+            if (stud.EducationHistory != null && stud.EducationHistory.Count > 0)
+            {
+                foreach (var history in stud.EducationHistory)
+                {
+                    if (history.EducationHistoryId > 0)
+                    {
+                        // Update only if ID exists
+                        edudal.UpdateEducationHistory(history);
+                    }
+                    else
+                    {
+                        // Check if record exists before adding
+                        var existingRecords = edudal.GetEducationHistoryByStudentId(stud.Id);
+                        bool exists = existingRecords.Any(h => h.PreviousSchool == history.PreviousSchool && h.PreviousClass == history.PreviousClass);
+
+                        if (!exists)  // Only insert if it does not exist
+                        {
+                            history.Id = stud.Id;
+                            edudal.AddEducationHistory(history);
+                        }
+                    }
+                }
+            }
         }
+
 
         public void DeleteStudent(int id)
         {
@@ -155,39 +194,31 @@ namespace StudentsDataApp.DAL
             }
             return classList;
         }
+
         public List<SectionModel> GetSectionsByClassId(int classId)
         {
             List<SectionModel> sectionList = new List<SectionModel>();
 
             using (SqlConnection con = new SqlConnection(cs))
             {
-                using (SqlCommand cmd = new SqlCommand("spGetSectionsByClassId", con))
+                SqlCommand cmd = new SqlCommand("spGetSectionsByClassId", con);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ClassId", classId);
+                con.Open();
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@ClassId", classId);
-
-                    con.Open();
-                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    SectionModel section = new SectionModel
                     {
-                        while (reader.Read())
-                        {
-                            Debug.WriteLine($"SectionId: {reader["SectionId"]}, SectionName: {reader["SectionName"]}");
-
-                            SectionModel section = new SectionModel
-                            {
-                                SectionId = Convert.ToInt32(reader["SectionId"]),
-                                SectionName = reader["SectionName"].ToString(),
-                                ClassId = Convert.ToInt32(reader["ClassId"])
-                            };
-                            sectionList.Add(section);
-                        }
-                    }
+                        SectionId = Convert.ToInt32(reader["SectionId"]),
+                        SectionName = reader["SectionName"].ToString(),
+                        ClassId = Convert.ToInt32(reader["ClassId"])
+                    };
+                    sectionList.Add(section);
                 }
             }
-
-            Debug.WriteLine($"Total Sections Found: {sectionList.Count}");
             return sectionList;
         }
-
     }
 }

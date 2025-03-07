@@ -11,58 +11,61 @@ namespace StudentsDataApp.Controllers
     public class StudentsController : Controller
     {
         private readonly StudentDAL dal;
+        private readonly EducationHistoryDAL edudal;
 
         public StudentsController()
         {
             dal = new StudentDAL();
+            edudal = new EducationHistoryDAL();
         }
 
         public IActionResult CreateEdit(int? id)
         {
             StudentsModel student = id.HasValue ? dal.GetStudentById(id.Value) : new StudentsModel();
-            ViewBag.Classes = dal.GetAllClasses();  
+            ViewBag.Classes = dal.GetAllClasses();
+            ViewBag.EducationHistory = id.HasValue ? edudal.GetEducationHistoryByStudentId(id.Value) : new List<EducationHistoryModel>();
             return View(student);
         }
+
         [HttpGet]
         public JsonResult GetAllStudents()
         {
-            List<StudentsModel> stud = dal.GetAllStudents();
-            return Json(stud);
+            List<StudentsModel> students = dal.GetAllStudents();
+            return Json(students);
         }
 
-      
         [HttpGet]
         public JsonResult GetStudentById(int id)
         {
-            StudentsModel stud = dal.GetStudentById(id);
-            if (stud == null)
+            StudentsModel student = dal.GetStudentById(id);
+            if (student == null)
             {
                 return Json(new { success = false, message = "Student not found" });
             }
-            return Json(stud);
+            student.EducationHistory = edudal.GetEducationHistoryByStudentId(id);
+            return Json(student);
         }
         [HttpPost]
-        public JsonResult SaveStudent(StudentsModel stud, IFormFile imageFile)
+        public JsonResult SaveStudent(StudentsModel student, IFormFile imageFile, List<EducationHistoryModel> educationHistory)
         {
             try
             {
-                if (stud.Id > 0)
+                if (student.Id > 0) // Update student
                 {
-                    var existingStudent = dal.GetStudentById(stud.Id);
+                    var existingStudent = dal.GetStudentById(student.Id);
                     if (existingStudent == null)
                     {
                         return Json(new { success = false, message = "Student not found" });
                     }
 
-                    existingStudent.First_Name = stud.First_Name;
-                    existingStudent.Last_Name = stud.Last_Name;
-                    existingStudent.Roll_Number = stud.Roll_Number;
-                    existingStudent.Marks = stud.Marks;
-                    existingStudent.Email = stud.Email;
-                    existingStudent.ClassID = stud.ClassID;
-                    existingStudent.ClassName = stud.ClassName;
-                    existingStudent.SectionID = stud.SectionID;
-                    existingStudent.SectionName = stud.SectionName;
+                    // Update student details
+                    existingStudent.First_Name = student.First_Name;
+                    existingStudent.Last_Name = student.Last_Name;
+                    existingStudent.Roll_Number = student.Roll_Number;
+                    existingStudent.Marks = student.Marks;
+                    existingStudent.Email = student.Email;
+                    existingStudent.ClassID = student.ClassID;
+                    existingStudent.SectionID = student.SectionID;
 
                     if (imageFile != null && imageFile.Length > 0)
                     {
@@ -72,30 +75,60 @@ namespace StudentsDataApp.Controllers
                             existingStudent.Image = memoryStream.ToArray();
                         }
                     }
-                    else
-                    {
-                        existingStudent.Image = dal.GetStudentById(stud.Id).Image; 
-                    }
 
                     dal.UpdateStudent(existingStudent);
+
+                    // Handling Education History
+                    var existingHistory = edudal.GetEducationHistoryByStudentId(student.Id);
+                    var existingHistoryIds = existingHistory.Select(h => h.EducationHistoryId).ToList();
+                    var receivedHistoryIds = educationHistory.Select(h => h.EducationHistoryId).ToList();
+
+                    // 1️⃣ Update existing records
+                    foreach (var history in educationHistory)
+                    {
+                        if (existingHistoryIds.Contains(history.EducationHistoryId))
+                        {
+                            edudal.UpdateEducationHistory(history);
+                        }
+                        else
+                        {
+                            history.Id = student.Id;
+                            edudal.AddEducationHistory(history);
+                        }
+                    }
+
+                    // 2️⃣ Remove deleted history records (Not in received data)
+                    var historyToDelete = existingHistory.Where(h => !receivedHistoryIds.Contains(h.EducationHistoryId)).ToList();
+                    foreach (var history in historyToDelete)
+                    {
+                        edudal.DeleteEducationHistory(history.EducationHistoryId);
+                    }
+
                     return Json(new { success = true, message = "Student updated successfully" });
                 }
-                else
+                else // Add new student
                 {
                     if (imageFile != null && imageFile.Length > 0)
                     {
                         using (var memoryStream = new MemoryStream())
                         {
                             imageFile.CopyTo(memoryStream);
-                            stud.Image = memoryStream.ToArray();
+                            student.Image = memoryStream.ToArray();
                         }
                     }
-                    else
+
+                    int newStudentId = dal.AddStudent(student);
+                    student.Id = newStudentId; // Ensure student ID is updated
+
+                    if (educationHistory != null && educationHistory.Count > 0)
                     {
-                        stud.Image = null;
+                        foreach (var history in educationHistory)
+                        {
+                            history.Id = student.Id;
+                            edudal.AddEducationHistory(history);
+                        }
                     }
 
-                    dal.AddStudent(stud);
                     return Json(new { success = true, message = "Student added successfully" });
                 }
             }
@@ -105,6 +138,8 @@ namespace StudentsDataApp.Controllers
             }
         }
 
+
+
         [HttpGet]
         public IActionResult GetStudentImage(int id)
         {
@@ -113,18 +148,13 @@ namespace StudentsDataApp.Controllers
                 return BadRequest(new { success = false, message = "Invalid student ID" });
             }
 
-            var stud = dal.GetStudentById(id);
-            if (stud == null)
-            {
-                return NotFound(new { success = false, message = "Student not found" });
-            }
-
-            if (stud.Image == null || stud.Image.Length == 0)
+            var student = dal.GetStudentById(id);
+            if (student == null || student.Image == null || student.Image.Length == 0)
             {
                 return NotFound(new { success = false, message = "Image not found" });
             }
 
-            return File(stud.Image, "image/jpeg");
+            return File(student.Image, "image/jpeg");
         }
 
         [HttpDelete]
@@ -135,36 +165,32 @@ namespace StudentsDataApp.Controllers
             {
                 return Json(new { success = false, message = "Student not found" });
             }
-
             dal.DeleteStudent(id);
             return Json(new { success = true, message = "Student deleted successfully" });
         }
+
         [HttpGet]
-        
         public JsonResult GetSectionsByClassId(int classId)
         {
-            Debug.WriteLine($"Received Class ID: {classId}");
-
             if (classId <= 0)
             {
                 return Json(new { success = false, message = "Invalid Class ID" });
             }
 
-            var section = dal.GetSectionsByClassId(classId);
-            Debug.WriteLine($"Sections Count: {section.Count}");
-
-            if (section == null || section.Count == 0)
+            var sections = dal.GetSectionsByClassId(classId);
+            if (sections == null || sections.Count == 0)
             {
                 return Json(new { success = false, message = "No sections found for this class." });
             }
-
-            return Json(section);
+            return Json(sections);
         }
+
         public JsonResult GetAllClasses()
         {
             List<ClassModel> classList = dal.GetAllClasses();
             return Json(classList);
         }
+
         public IActionResult Index()
         {
             return View();

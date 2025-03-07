@@ -23,5 +23,7 @@
         public int SectionID { get; set; }
 
         public string SectionName { get; set; }
+
+        public List<EducationHistoryModel> EducationHistory { get; set; }
     }
 }
