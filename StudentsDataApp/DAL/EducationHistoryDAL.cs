@@ -39,7 +39,7 @@ namespace StudentsDataApp.DAL
         {
             if (string.IsNullOrEmpty(history.PreviousSchool) || string.IsNullOrEmpty(history.PreviousClass))
             {
-                return;
+                return; 
             }
 
             using (SqlConnection con = new SqlConnection(cs))
@@ -56,36 +56,23 @@ namespace StudentsDataApp.DAL
             }
         }
 
-        public bool UpdateEducationHistory(EducationHistoryModel history)
+        public void UpdateEducationHistory(EducationHistoryModel history)
         {
-            if (history.EducationHistoryId <= 0)  // Ensure valid ID is passed
-            {
-                Console.WriteLine("Invalid EducationHistoryId, skipping update.");
-                return false;
-            }
-
             using (SqlConnection con = new SqlConnection(cs))
             {
-                try
-                {
-                    SqlCommand cmd = new SqlCommand("spUpdateEducationHistory", con);
-                    cmd.CommandType = CommandType.StoredProcedure;
+                SqlCommand cmd = new SqlCommand("spUpdateEducationHistory", con);
+                cmd.CommandType = CommandType.StoredProcedure;
 
-                    cmd.Parameters.AddWithValue("@EducationHistoryId", history.EducationHistoryId);
-                    cmd.Parameters.AddWithValue("@Id", history.Id);
-                    cmd.Parameters.AddWithValue("@PreviousSchool", history.PreviousSchool);
-                    cmd.Parameters.AddWithValue("@PreviousClass", history.PreviousClass);
+                cmd.Parameters.AddWithValue("@EducationHistoryId", history.EducationHistoryId);
+                cmd.Parameters.AddWithValue("@Id", history.Id);
+                cmd.Parameters.AddWithValue("@PreviousSchool", history.PreviousSchool);
+                cmd.Parameters.AddWithValue("@PreviousClass", history.PreviousClass);
 
-                    con.Open();
-                    int rowsAffected = cmd.ExecuteNonQuery();
+                con.Open();
+                int rowsAffected = cmd.ExecuteNonQuery();
+                con.Close();
 
-                    return rowsAffected > 0; // Return success status
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Update Error: " + ex.Message);
-                    return false;
-                }
+                Console.WriteLine($"Updated Rows: {rowsAffected} for History ID: {history.EducationHistoryId}");
             }
         }
 

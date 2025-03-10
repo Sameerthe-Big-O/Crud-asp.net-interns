@@ -50,15 +50,13 @@ namespace StudentsDataApp.Controllers
         {
             try
             {
-                if (student.Id > 0) // Update student
+                if (student.Id > 0) 
                 {
                     var existingStudent = dal.GetStudentById(student.Id);
                     if (existingStudent == null)
                     {
                         return Json(new { success = false, message = "Student not found" });
                     }
-
-                    // Update student details
                     existingStudent.First_Name = student.First_Name;
                     existingStudent.Last_Name = student.Last_Name;
                     existingStudent.Roll_Number = student.Roll_Number;
@@ -76,37 +74,43 @@ namespace StudentsDataApp.Controllers
                         }
                     }
 
+
                     dal.UpdateStudent(existingStudent);
 
-                    // Handling Education History
-                    var existingHistory = edudal.GetEducationHistoryByStudentId(student.Id);
-                    var existingHistoryIds = existingHistory.Select(h => h.EducationHistoryId).ToList();
-                    var receivedHistoryIds = educationHistory.Select(h => h.EducationHistoryId).ToList();
-
-                    // 1️⃣ Update existing records
-                    foreach (var history in educationHistory)
+                    if (educationHistory != null)
                     {
-                        if (existingHistoryIds.Contains(history.EducationHistoryId))
-                        {
-                            edudal.UpdateEducationHistory(history);
-                        }
-                        else
+                        var existingHistory = edudal.GetEducationHistoryByStudentId(student.Id);
+                        var updatedHistoryIds = educationHistory
+                            .Where(h => h.EducationHistoryId > 0)
+                            .Select(h => h.EducationHistoryId)
+                            .ToList();
+                        foreach (var history in educationHistory)
                         {
                             history.Id = student.Id;
-                            edudal.AddEducationHistory(history);
-                        }
-                    }
+                            Console.WriteLine($"Updating History ID: {history.EducationHistoryId}, Student ID: {history.Id}");
 
-                    // 2️⃣ Remove deleted history records (Not in received data)
-                    var historyToDelete = existingHistory.Where(h => !receivedHistoryIds.Contains(h.EducationHistoryId)).ToList();
-                    foreach (var history in historyToDelete)
-                    {
-                        edudal.DeleteEducationHistory(history.EducationHistoryId);
+                            if (history.EducationHistoryId > 0 && !string.IsNullOrEmpty(history.PreviousSchool))
+                            {
+                                edudal.UpdateEducationHistory(history);
+                            }
+                            else
+                            {
+                                history.Id = student.Id;
+                                edudal.AddEducationHistory(history);
+                            }
+                        }
+                        foreach (var oldHistory in existingHistory)
+                        {
+                            if (!updatedHistoryIds.Contains(oldHistory.EducationHistoryId))
+                            {
+                                edudal.DeleteEducationHistory(oldHistory.EducationHistoryId);
+                            }
+                        }
                     }
 
                     return Json(new { success = true, message = "Student updated successfully" });
                 }
-                else // Add new student
+                else 
                 {
                     if (imageFile != null && imageFile.Length > 0)
                     {
@@ -116,11 +120,10 @@ namespace StudentsDataApp.Controllers
                             student.Image = memoryStream.ToArray();
                         }
                     }
-
                     int newStudentId = dal.AddStudent(student);
-                    student.Id = newStudentId; // Ensure student ID is updated
+                    student.Id = newStudentId;
 
-                    if (educationHistory != null && educationHistory.Count > 0)
+                    if (educationHistory != null)
                     {
                         foreach (var history in educationHistory)
                         {

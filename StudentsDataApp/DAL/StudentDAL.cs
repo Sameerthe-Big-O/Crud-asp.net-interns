@@ -139,16 +139,16 @@ namespace StudentsDataApp.DAL
                 {
                     if (history.EducationHistoryId > 0)
                     {
-                        // Update only if ID exists
+                       
                         edudal.UpdateEducationHistory(history);
                     }
                     else
                     {
-                        // Check if record exists before adding
+                        
                         var existingRecords = edudal.GetEducationHistoryByStudentId(stud.Id);
                         bool exists = existingRecords.Any(h => h.PreviousSchool == history.PreviousSchool && h.PreviousClass == history.PreviousClass);
 
-                        if (!exists)  // Only insert if it does not exist
+                        if (!exists)  
                         {
                             history.Id = stud.Id;
                             edudal.AddEducationHistory(history);

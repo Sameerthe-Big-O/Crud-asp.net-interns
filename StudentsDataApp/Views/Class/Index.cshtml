@@ -11,6 +11,25 @@
 	<tbody>
 	</tbody>
 </table>
+<label class="mt-3">Education History:</label>
+<div class="row">
+	<div class="col-md-10">
+		<div id="educationHistoryContainer">
+			<div class="row eduRow">
+				<input type="hidden" name="EducationHistory[0].EducationHistoryId" value="0" />
+				<div class="col-md-8">
+					<input type="text" class="form-control" name="EducationHistory[0].PreviousSchool" placeholder="Previous School" />
+				</div>
+				<div class="col-md-8 mt-2">
+					<input type="text" class="form-control" name="EducationHistory[0].PreviousClass" placeholder="Previous Class" />
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-2 text-end">
+		<button type="button" class="btn btn-success" id="addEducationRow">+</button>
+	</div>
+</div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
