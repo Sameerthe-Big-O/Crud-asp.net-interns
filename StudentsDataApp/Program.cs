@@ -19,9 +19,23 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
+app.MapControllerRoute(
+    name: "GetAllStudentsReport",
+    pattern: "Report/GetAllStudents",
+    defaults: new { controller = "Reports", action = "GetAllStudents" }
+);
 
+app.MapControllerRoute(
+    name: "GetStudentDetailReport",
+    pattern: "Report/GetStudentDetail/{studentId?}",
+    defaults: new { controller = "Reports", action = "GetStudentDetail" }
+);
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Students}/{action=Index}/{id?}");
+
+
+
+
 
 app.Run();
